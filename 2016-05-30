@@ -1,0 +1,69 @@
+ReactChildren.js
+
+var ReactChildren = {
+  forEach: forEachChildren,
+  map: mapChildren,
+  mapIntoWithKeyPrefixInternal: mapIntoWithKeyPrefixInternal,
+  count: countChildren,
+  toArray: toArray
+};
+
+module.exports = ReactChildren;
+==========================================================================
+function ForEachBookKeeping(forEachFunction, forEachContext) {
+  this.func = forEachFunction;
+  this.context = forEachContext;
+  this.count = 0;
+}
+ForEachBookKeeping.prototype.destructor = function () {
+  this.func = null;
+  this.context = null;
+  this.count = 0;
+};
+PooledClass.addPoolingTo(ForEachBookKeeping, twoArgumentPooler);//池化ForEachBookKeeping,并使用2个参数的pooler
+
+function forEachChildren(children, forEachFunc, forEachContext) {
+  if (children == null) {
+    return children;
+  }
+  var traverseContext = ForEachBookKeeping.getPooled(forEachFunc, forEachContext);
+  traverseAllChildren(children, forEachSingleChild, traverseContext);
+  ForEachBookKeeping.release(traverseContext);
+}
+
+
+==========================================================================
+对象池模式
+PooledClass.js
+var PooledClass = {
+  addPoolingTo: addPoolingTo,
+  oneArgumentPooler: oneArgumentPooler,
+  twoArgumentPooler: twoArgumentPooler,
+  threeArgumentPooler: threeArgumentPooler,
+  fourArgumentPooler: fourArgumentPooler,
+  fiveArgumentPooler: fiveArgumentPooler
+};
+module.exports = PooledClass;
+
+var twoArgumentPooler = function (a1, a2) { //2个参数的类，如果池中有元素，则移除最后一个并返回，如果没有则创建一个并返回
+  var Klass = this;
+  if (Klass.instancePool.length) {
+    var instance = Klass.instancePool.pop();
+    Klass.call(instance, a1, a2);
+    return instance;
+  } else {
+    return new Klass(a1, a2);
+  }
+};
+
+
+var addPoolingTo = function (CopyConstructor, pooler) { //类池管理，
+  var NewKlass = CopyConstructor;
+  NewKlass.instancePool = []; //实例存储池
+  NewKlass.getPooled = pooler || DEFAULT_POOLER; //默认一个参数的获取方式
+  if (!NewKlass.poolSize) {
+    NewKlass.poolSize = DEFAULT_POOL_SIZE; //默认10
+  }
+  NewKlass.release = standardReleaser; //instancePool 池中放入新的实例
+  return NewKlass;
+};
